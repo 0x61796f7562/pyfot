@@ -19,6 +19,7 @@ palette = [
 class AppContainer(urwid.WidgetPlaceholder):
     window_count = 0
     monitors_list_open = False
+    filter_open = False
     def __init__(self):
         super(urwid.WidgetPlaceholder, self).__init__(urwid.SolidFill(" "))
         self.open(self.create_matches_list_window(), 90, 100)
@@ -34,17 +35,20 @@ class AppContainer(urwid.WidgetPlaceholder):
             self.window_count -= 1
             if self.monitors_list_open:
                 self.monitors_list_open = False
+            if self.filter_open:
+                self.filter_open = False
 
 
     def keypress(self, size, key):
         if key == "esc":
             self.close()
+            return
         elif key in ("m", "M"):
-            if not self.monitors_list_open:
+            if not self.monitors_list_open and not self.filter_open:
                 self.open(self.create_monitors_list(), 70, 100)
                 self.monitors_list_open = True
-        else:
-            return super(AppContainer, self).keypress(size, key)
+                return
+        return super(AppContainer, self).keypress(size, key)
 
 
     def _create_window(self, new_content, old_content, width, height):
@@ -284,6 +288,7 @@ class FilterableListBox(urwid.ListBox):
         if key in ("f", "F"):
             if self.filterable:
                 self.app_container.open(self._create_filter_window(), 40, "pack")
+                self.app_container.filter_open = True
         else:
             return super(FilterableListBox, self).keypress(size, key)
 
