@@ -145,8 +145,8 @@ def format_matches_data(data: Any, date: str) -> list[MatchesByTournament]:
 
 
 def format_lineups_data(data: Any) -> Lineups:
-    home_lineups_jq = '.home.players[] | {"name": .player.name, "id": .player.id, "substitute": .substitute, "jerseyNumber": .player.jerseyNumber, "goals": .statistics.goals, "ownGoals": .statistics.ownGoals}'
-    away_lineups_jq = '.away.players[] | {"name": .player.name, "id": .player.id, "substitute": .substitute, "jerseyNumber": .player.jerseyNumber, "goals": .statistics.goals, "ownGoals": .statistics.ownGoals}'
+    home_lineups_jq = '.home.players[] | {"name": .player.name, "id": .player.id, "substitute": .substitute, "jerseyNumber": .jerseyNumber, "goals": .statistics.goals, "ownGoals": .statistics.ownGoals}'
+    away_lineups_jq = '.away.players[] | {"name": .player.name, "id": .player.id, "substitute": .substitute, "jerseyNumber": .jerseyNumber, "goals": .statistics.goals, "ownGoals": .statistics.ownGoals}'
     home_lineup = pyjq.all(home_lineups_jq, data)
     away_lineup = pyjq.all(away_lineups_jq, data)
     lineups = Lineups(
