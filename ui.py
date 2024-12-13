@@ -13,7 +13,8 @@ palette = [
           ("selected", "black", "white"),
           ("light_bg", "black", "light gray"),
           ("warning", "dark red", ""),
-          ("footer", "black", "light gray")
+          ("footer", "black", "light gray"),
+          ("filtered", "white,bold", "dark magenta")
 ]
 
 class AppContainer(urwid.WidgetPlaceholder):
@@ -263,32 +264,54 @@ class AppContainer(urwid.WidgetPlaceholder):
 class CustomButton(urwid.Button):
     def __init__(self, label, *args, **kwargs):
         super().__init__(label, *args, **kwargs)
-        self.si = urwid.SelectableIcon(label, *args, **kwargs, cursor_position=1000)
-        self._w = urwid.AttrMap(self.si, None, "selected")
-        self.text = self._w.original_widget.text
+        self.selectableIcon = urwid.SelectableIcon(label, *args, **kwargs, cursor_position=1000)
+        self.content = urwid.AttrMap(self.selectableIcon, None, "selected")
+        self._w = urwid.Columns([self.content])
+        self.original_widget = self.content
+        self.text = self.content.original_widget.text
     
     def set_text(self, label: str) -> None:
-        self.si.set_text(label)
+        self.selectableIcon.set_text(label)
 
 
 
 class FilterableListBox(urwid.ListBox):
     app_container: AppContainer
-    def __init__(self, app_conainer_ref, items, filterable=True):
-        self.app_container = app_conainer_ref
+    def __init__(self, app_container_ref, items, filterable=True):
+        self.app_container = app_container_ref
         self.items = items
         self.filterable = filterable
         self.filter_text = ""
-        self.filtered_items = [*self.items]
-        self.list_walker = urwid.SimpleFocusListWalker(self.filtered_items)
+        self.filter_indexes = []
+        self.filter_index = 0
+        self.list_walker = urwid.SimpleFocusListWalker(self.items)
         super(FilterableListBox, self).__init__(self.list_walker)
 
+    def _move_filter_index(self, current_index): 
+        if self.filter_indexes:
+            current = self.filter_indexes[current_index]
+            self.set_focus(current)
+            self.filter_index = current_index
 
     def keypress(self, size, key):
         if key in ("f", "F"):
             if self.filterable:
                 self.app_container.open(self._create_filter_window(), 40, "pack")
                 self.app_container.filter_open = True
+        elif key in ("n", "N"):
+            current_index = self.filter_index + 1
+            if current_index < len(self.filter_indexes):
+                self._move_filter_index(current_index)
+            else: 
+                current_index = 0
+                self._move_filter_index(current_index)
+        elif key in ("p", "P"):
+            current_index = self.filter_index - 1
+            if current_index >= 0:
+                self._move_filter_index(current_index)
+            else: 
+                current_index = len(self.filter_indexes) - 1
+                self._move_filter_index(current_index)
         else:
             return super(FilterableListBox, self).keypress(size, key)
 
@@ -322,7 +345,19 @@ class FilterableListBox(urwid.ListBox):
 
         ), height=6)
     
-    def filter(self, filter_text):
+    def _show_filtered(self, w):
+        if isinstance(w, urwid.AttrMap):
+            w.set_focus_map({None: "filtered"})
+        else:
+            self._show_filtered(w.original_widget)
+
+    def _show_default(self, w):
+        if isinstance(w, urwid.AttrMap):
+            w.set_focus_map({None: "selected"})
+        else:
+            self._show_default(w.original_widget)
+
+    def filter(self, filter_text: str):
         def get_text(w):
             if hasattr(w, "text"):
                 return w.text
@@ -331,13 +366,15 @@ class FilterableListBox(urwid.ListBox):
 
         self.filter_text = filter_text
 
-        self.filtered_items = [item for item in self.items if filter_text.lower() in get_text(item).lower()]
-        self.body = self.filtered_items
-        self.list_walker.focus = 0
-        
-        # for i, item in enumerate(self.items):
-        #     if filter_text.lower() in get_text(item).lower():
-        #         self.set_focus(i)
+        self.filter_indexes.clear()
+        for i, item in enumerate(self.items):
+            if filter_text.strip() and filter_text.lower() in get_text(item).lower():
+                self.filter_indexes.append(i)
+                self._show_filtered(self.items[i])
+            else: self._show_default(self.items[i])
+        if self.filter_indexes:
+            current_index = self.filter_indexes[0]
+            self.set_focus(current_index)
 
     def reset_filter(self, edit):
         edit.edit_text = ""
