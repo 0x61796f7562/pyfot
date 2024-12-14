@@ -14,7 +14,7 @@ palette = [
           ("light_bg", "black", "light gray"),
           ("warning", "dark red", ""),
           ("footer", "black", "light gray"),
-          ("filtered", "white,bold", "dark magenta")
+          ("filtered", "white,bold", "dark cyan")
 ]
 
 class AppContainer(urwid.WidgetPlaceholder):
@@ -275,7 +275,7 @@ class CustomButton(urwid.Button):
 
 
 
-class FilterableListBox(urwid.ListBox):
+class FilterableListBox(urwid.Pile):
     app_container: AppContainer
     def __init__(self, app_container_ref, items, filterable=True):
         self.app_container = app_container_ref
@@ -285,13 +285,27 @@ class FilterableListBox(urwid.ListBox):
         self.filter_indexes = []
         self.filter_index = 0
         self.list_walker = urwid.SimpleFocusListWalker(self.items)
-        super(FilterableListBox, self).__init__(self.list_walker)
+        self.list_box = urwid.ListBox(self.list_walker)
+        self.filter_status = urwid.Text(("filtered", ""), align="right")
+
+        super(FilterableListBox, self).__init__(
+            [
+                self.list_box,
+                (
+                    1,
+                    urwid.Filler(
+                        self.filter_status
+                    )
+                )
+            ]
+        )
 
     def _move_filter_index(self, current_index): 
         if self.filter_indexes:
             current = self.filter_indexes[current_index]
-            self.set_focus(current)
+            self.list_box.set_focus(current)
             self.filter_index = current_index
+            self.filter_status.set_text(("filtered", f"{current_index + 1}/{len(self.filter_indexes)}"))
 
     def keypress(self, size, key):
         if key in ("f", "F"):
@@ -373,8 +387,8 @@ class FilterableListBox(urwid.ListBox):
                 self._show_filtered(self.items[i])
             else: self._show_default(self.items[i])
         if self.filter_indexes:
-            current_index = self.filter_indexes[0]
-            self.set_focus(current_index)
+            self._move_filter_index(0)
+        else: self.filter_status.set_text("")
 
     def reset_filter(self, edit):
         edit.edit_text = ""
