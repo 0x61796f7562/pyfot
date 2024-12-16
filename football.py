@@ -1,8 +1,10 @@
 
-from ui import AppContainer,palette
+from ui import AppContainer, palette
 from app_state import app_state
 from logger import setup_logging
 import urwid
+import sys
+from datetime import datetime
 
 def handle_exit(key):
     if key in ("q", "Q"):
@@ -20,7 +22,18 @@ def startMainLoop(top_widget):
 def main():
     setup_logging()
 
-    app_container = AppContainer()
+    matches_date = ""
+    if len(sys.argv) >= 2: 
+        date_arg = sys.argv[1]
+        try:
+            datetime.strptime(date_arg, "%Y-%m-%d")
+            matches_date = date_arg
+        except ValueError:
+            print(f"Invalid date format: {date_arg}") 
+            print(f"Use Year-Month-Day ex: {datetime.today().date()}")
+            return
+
+    app_container = AppContainer(matches_date)
     startMainLoop(app_container) 
 
 

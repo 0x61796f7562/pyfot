@@ -20,7 +20,7 @@ class Team:
 class Match:
     id: int
     date: str
-    time: str
+    timestamp: float
     status: Literal["inprogress", "finished"]
     tournament: Tournament
     awayTeam: Team
@@ -121,7 +121,7 @@ class Lineups:
 
 
 def format_matches_data(data: Any, date: str) -> list[MatchesByTournament]:
-    matches_jq = '[.events[] | {"id": .id, "date": .startTimestamp, "time": .startTimestamp, "status": .status.type, "tournament": {"id": .tournament.uniqueTournament.id, "name": .tournament.name, "country": .tournament.category.name}, "awayTeam": {"name": .awayTeam.name, "id": .awayTeam.id, "score": .awayScore.current}, "homeTeam": {"name": .homeTeam.name, "id": .homeTeam.id, "score": .homeScore.current}} | .date |= strftime("%Y-%m-%d") | .time |= strftime("%H:%M %Z") | select(.date == $today_date)] | group_by(.tournament.name) | map({"tournamentName": .[0].tournament.name, "matches": [.[]]}) | .[]'
+    matches_jq = '[.events[] | {"id": .id, "date": .startTimestamp, "timestamp": .startTimestamp, "status": .status.type, "tournament": {"id": .tournament.uniqueTournament.id, "name": .tournament.name, "country": .tournament.category.name}, "awayTeam": {"name": .awayTeam.name, "id": .awayTeam.id, "score": .awayScore.current}, "homeTeam": {"name": .homeTeam.name, "id": .homeTeam.id, "score": .homeScore.current}} | .date |= strftime("%Y-%m-%d") | select(.date == $today_date)] | group_by(.tournament.id) | map({"tournamentName": (.[0].tournament.name + " (" + .[0].tournament.country + ")"), "matches": [.[]]}) | .[]'
     matches_by_tournament_list = pyjq.all(matches_jq, data, vars={"today_date": date})
     matches_by_tournament_list = [
         MatchesByTournament(
@@ -130,7 +130,7 @@ def format_matches_data(data: Any, date: str) -> list[MatchesByTournament]:
                 Match(
                     id=match["id"],
                     date=match["date"],
-                    time=match["time"],
+                    timestamp=match["timestamp"],
                     status=match["status"],
                     tournament=Tournament(**match["tournament"]),
                     homeTeam=Team(**match["homeTeam"]),

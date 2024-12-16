@@ -6,26 +6,35 @@ from data import Player, Match
 from app_state import app_state
 
 palette = [
-          ("title", "bold,white", "dark gray"), 
-          ("subtitle", "bold", ""),
-          ("subtitle1", "bold", "dark gray"),
-          ("not_selected", "white", "black"),
-          ("selected", "black", "white"),
-          ("light_bg", "black", "light gray"),
-          ("warning", "dark red", ""),
-          ("footer", "black", "light gray"),
-          ("filtered", "white,bold", "dark cyan")
+    ("title", "bold,white", "dark gray"), 
+    ("subtitle", "bold", ""),
+    ("subtitle1", "bold", "dark gray"),
+    ("not_selected", "white", "black"),
+    ("selected", "black", "white"),
+    ("light_bg", "black", "light gray"),
+    ("warning", "dark red", ""),
+    ("footer", "black", "light gray"),
+    ("filtered", "white,bold", "dark cyan"),
 ]
 
 class AppContainer(urwid.WidgetPlaceholder):
     window_count = 0
     monitors_list_open = False
     filter_open = False
-    def __init__(self):
+    def __init__(self, matches_date: str):
         super(urwid.WidgetPlaceholder, self).__init__(urwid.SolidFill(" "))
+        self.matches_date = matches_date if matches_date else str(datetime.today().date())
+        self.matches_list_box = FilterableListBox(self, [])
+        self.last_matches_refresh_time_status = urwid.Text(
+            (
+                urwid.AttrSpec("light gray", "dark gray", 16), 
+                f'Last Refresh: {str(datetime.today().strftime("%X"))}'
+            )
+        , align="center")
+        self.can_refresh = True if self.matches_date == str(datetime.today().date()) else False
         self.open(self.create_matches_list_window(), 90, 100)
 
-    
+
     def open(self, content, width, height):
         self.original_widget = self._create_window(content, self.original_widget, width, height)
         self.window_count += 1
@@ -49,40 +58,64 @@ class AppContainer(urwid.WidgetPlaceholder):
                 self.open(self.create_monitors_list(), 70, 100)
                 self.monitors_list_open = True
                 return
+        elif key in ("r", "R") and self.can_refresh:
+            if not self.monitors_list_open and not self.filter_open:
+                self._update_matches_list()
+                return
         return super(AppContainer, self).keypress(size, key)
 
 
     def _create_window(self, new_content, old_content, width, height):
         return urwid.Overlay(urwid.LineBox(new_content), old_content, align="center", valign="middle", width=width, height=height)
 
+    def _update_last_matches_refresh_time_status(self):
+        self.last_matches_refresh_time_status.set_text(
+            (
+                urwid.AttrSpec("light gray", "dark gray", 16), 
+                f'Last Refresh: {str(datetime.today().strftime("%X"))}'
+            )
+        )
 
-    def create_matches_list_window(self):
-        header = create_title("Matches")
-        body = urwid.Filler(urwid.Text("No Matches Available!", align="center"))
-        items = []
-        today_date = str(datetime.today().date())
+    def _update_matches_list(self):
         match_status_text = {
             "inprogress": "In Progress",
             "finished": "Finished"
         }
-        matches_by_tournament_list = get_matches_grouped_by_tournament(today_date)
+        items = []
+        matches_by_tournament_list = get_matches_grouped_by_tournament(self.matches_date)
         if matches_by_tournament_list:
             for matches_by_tournament in matches_by_tournament_list:
                 tournament_name = create_subtitle(matches_by_tournament.tournamentName)
                 items.append(tournament_name)
                 for match in matches_by_tournament.matches:
                     if match.status in ("inprogress", "finished"):
-                        formated_match_data = f'[{match.time}][{match_status_text[match.status]}] {match.homeTeam.name} {match.homeTeam.score} - {match.awayTeam.score} {match.awayTeam.name}'
+                        formated_match_data = f'[{datetime.fromtimestamp(match.timestamp).strftime("%H:%M")}][{match_status_text[match.status]}] {match.homeTeam.name} {match.homeTeam.score} - {match.awayTeam.score} {match.awayTeam.name}'
                     else:
-                        formated_match_data = f'[{match.time}] {match.homeTeam.name} vs {match.awayTeam.name}'
+                        formated_match_data = f'[{datetime.fromtimestamp(match.timestamp).strftime("%H:%M")}] {match.homeTeam.name} vs {match.awayTeam.name}'
                     match_btn = CustomButton(formated_match_data, align="center")
                     def handle_click(_, match):
                         self.open(self.create_lineups_list_window(match), 60, 80)
                     urwid.connect_signal(match_btn, "click", handle_click, user_arg=match)
                     items.append(match_btn)
-            flistb = FilterableListBox(self, items)
-            body = flistb
 
+            self.matches_list_box.set_items(items)
+            self._update_last_matches_refresh_time_status()
+
+    def create_matches_list_window(self):
+        header = urwid.AttrMap(
+            urwid.BoxAdapter(
+                urwid.ListBox([
+                    urwid.Divider(),
+                    urwid.Text(f'Matches: {"Today" if self.matches_date == str(datetime.today().date()) else self.matches_date}', align="center"),
+                    self.last_matches_refresh_time_status if self.can_refresh else urwid.Divider(),
+                    urwid.Divider()
+                ]), 
+                height=4 if self.can_refresh else 3
+            ), 
+            "title"
+        )
+
+        body = urwid.Filler(urwid.Text("No Matches Available!", align="center"))
         app_state["monitor"]["status_widget"] = urwid.Text(f'[Active Monitors: {app_state["monitor"]["monitors_count"]}]')
         status_footer = urwid.AttrMap(
             urwid.Filler(
@@ -91,6 +124,9 @@ class AppContainer(urwid.WidgetPlaceholder):
                 )
             ), 
         "footer")
+
+        self._update_matches_list()
+        if self.matches_list_box.items: body = self.matches_list_box
 
         frame = urwid.Frame(header=header, body=body, footer=status_footer)
         return frame
@@ -183,9 +219,9 @@ class AppContainer(urwid.WidgetPlaceholder):
                     ]), left=1, right=1)
                     items.append(item)
             if items:
-                flistb.body = items
+                flistb.set_items(items)
                 body = flistb
-        
+
         frame = urwid.Frame(header=header, body=body)
         return frame
 
@@ -269,7 +305,7 @@ class CustomButton(urwid.Button):
         self._w = urwid.Columns([self.content])
         self.original_widget = self.content
         self.text = self.content.original_widget.text
-    
+
     def set_text(self, label: str) -> None:
         self.selectableIcon.set_text(label)
 
@@ -306,6 +342,20 @@ class FilterableListBox(urwid.Pile):
             self.list_box.set_focus(current)
             self.filter_index = current_index
             self.filter_status.set_text(("filtered", f"{current_index + 1}/{len(self.filter_indexes)}"))
+
+    def _get_text(self, w):
+        if hasattr(w, "text"):
+            return w.text
+        else:
+            return self._get_text(w.original_widget)
+
+    def set_items(self, items):
+        if self.filterable:
+            for i in self.filter_indexes:
+                self._show_filtered(items[i])
+
+        self.items = items
+        self.list_box.body = self.items
 
     def keypress(self, size, key):
         if key in ("f", "F"):
@@ -372,17 +422,11 @@ class FilterableListBox(urwid.Pile):
             self._show_default(w.original_widget)
 
     def filter(self, filter_text: str):
-        def get_text(w):
-            if hasattr(w, "text"):
-                return w.text
-            else:
-                return get_text(w.original_widget)
-
         self.filter_text = filter_text
 
         self.filter_indexes.clear()
         for i, item in enumerate(self.items):
-            if filter_text.strip() and filter_text.lower() in get_text(item).lower():
+            if self.filter_text.strip() and self.filter_text.lower() in self._get_text(item).lower():
                 self.filter_indexes.append(i)
                 self._show_filtered(self.items[i])
             else: self._show_default(self.items[i])
