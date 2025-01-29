@@ -1,4 +1,5 @@
 
+from requests.exceptions import HTTPError, ConnectionError
 from ui import AppContainer, palette
 from app_state import app_state
 from logger import setup_logging
@@ -30,11 +31,16 @@ def main():
             matches_date = date_arg
         except ValueError:
             print(f"Invalid date format: {date_arg}") 
-            print(f"Use Year-Month-Day ex: {datetime.today().date()}")
+            print(f"Use Year-Month-Day like: {datetime.today().date()}")
             return
 
-    app_container = AppContainer(matches_date)
-    startMainLoop(app_container) 
+    try:
+        app_container = AppContainer(matches_date)
+        startMainLoop(app_container) 
+    except HTTPError:
+        print("Verify if https://www.sofascore.com/ is accessible")
+    except ConnectionError:
+        print("Check your internet connection")
 
 
 
