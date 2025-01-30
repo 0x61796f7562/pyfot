@@ -8,8 +8,7 @@ import chime
 
 def notify(title: str, message: str, status_sound: Literal["success", "info", "error", "mute"], timeout=2) -> None:
     icon_name = "football.png"
-    icon_path = str((Path("assets") / icon_name).resolve())
-    print(icon_path)
+    icon_path = str((Path(__file__).parent / "assets" / icon_name).resolve())
 
     if status_sound == "info":
         chime.info()
