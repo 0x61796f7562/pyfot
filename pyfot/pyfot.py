@@ -1,8 +1,8 @@
 
 from requests.exceptions import HTTPError, ConnectionError
-from ui import AppContainer, palette
-from app_state import app_state
-from logger import setup_logging
+from .ui import AppContainer, palette
+from .app_state import app_state
+from .logger import setup_logging
 import urwid
 import sys
 from datetime import datetime

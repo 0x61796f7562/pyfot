@@ -1,8 +1,8 @@
 from threading import Event
-from utils import notify
-from api import get_substitution_incidents
-from data import Player
-from app_state import app_state
+from .utils import notify
+from .api import get_substitution_incidents
+from .data import Player
+from .app_state import app_state
 import asyncio
 import logging
 

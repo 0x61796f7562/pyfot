@@ -8,8 +8,9 @@ import chime
 
 def notify(title: str, message: str, status_sound: Literal["success", "info", "error", "mute"], timeout=2) -> None:
     icon_name = "football.png"
-    icon_path = Path("image") / icon_name
-    
+    icon_path = str((Path("assets") / icon_name).resolve())
+    print(icon_path)
+
     if status_sound == "info":
         chime.info()
     elif status_sound == "error":
@@ -17,6 +18,6 @@ def notify(title: str, message: str, status_sound: Literal["success", "info", "e
     elif status_sound == "success":
         chime.success()
 
-    notification.notify(title, message, timeout=timeout, app_name="Football CLI", app_icon=str(icon_path.resolve()))
+    notification.notify(title, message, timeout=timeout, app_name="PyFot", app_icon=icon_path)
 
 

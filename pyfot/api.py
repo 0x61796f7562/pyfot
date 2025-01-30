@@ -1,8 +1,8 @@
 from fake_useragent import FakeUserAgent
 import requests
 from typing import Union
-from data import MatchesByTournament, SubsIncident, Lineups
-from data import format_matches_data, format_lineups_data, format_subs_incidents_data
+from .data import MatchesByTournament, SubsIncident, Lineups
+from .data import format_matches_data, format_lineups_data, format_subs_incidents_data
 
 
 request_headers = {"user-agent": FakeUserAgent().random}

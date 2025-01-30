@@ -1,3 +1,5 @@
 __pycache__/
 json_data/
 *.log
+build/
+pyfot.egg-info/

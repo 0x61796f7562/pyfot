@@ -1,5 +1,5 @@
 from typing import TypedDict, Union
-from data import Player
+from .data import Player
 import urwid
 import asyncio
 

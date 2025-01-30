@@ -1,9 +1,9 @@
 from datetime import datetime
 import urwid
-from api import get_lineups, get_matches_grouped_by_tournament, get_substitution_incidents
-from monitor import monitor_player_substitution
-from data import Player, Match
-from app_state import app_state
+from .api import get_lineups, get_matches_grouped_by_tournament, get_substitution_incidents
+from .monitor import monitor_player_substitution
+from .data import Player, Match
+from .app_state import app_state
 
 palette = [
     ("title", "bold,white", "dark gray"), 
