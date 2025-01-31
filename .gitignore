@@ -3,3 +3,4 @@ json_data/
 *.log
 build/
 pyfot.egg-info/
+dist/
